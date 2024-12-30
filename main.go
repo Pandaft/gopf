@@ -12,13 +12,40 @@ import (
 	"syscall"
 )
 
+const defaultConfigFile = "gopf.yaml"
+
+func initEmptyConfig(filename string) (*config.Config, error) {
+	cfg := &config.Config{
+		Rules: make([]config.ForwardRule, 0),
+	}
+
+	// 保存空配置到文件
+	if err := config.SaveConfig(filename, cfg); err != nil {
+		return nil, fmt.Errorf("创建配置文件失败: %v", err)
+	}
+
+	return cfg, nil
+}
+
 func main() {
-	configFile := flag.String("config", "config.yaml", "配置文件路径")
+	configFile := flag.String("config", defaultConfigFile, "配置文件路径")
 	flag.Parse()
 
 	cfg, err := config.LoadConfig(*configFile)
 	if err != nil {
-		log.Fatalf("加载配置文件失败: %v", err)
+		if os.IsNotExist(err) {
+			log.Printf("配置文件 %s 不存在，创建新的配置文件...", *configFile)
+			if _, err = initEmptyConfig(*configFile); err != nil {
+				log.Fatalf("初始化配置文件失败: %v", err)
+			}
+			// 重新加载配置文件
+			cfg, err = config.LoadConfig(*configFile)
+			if err != nil {
+				log.Fatalf("加载新创建的配置文件失败: %v", err)
+			}
+		} else {
+			log.Fatalf("加载配置文件失败: %v", err)
+		}
 	}
 
 	forwarders := make(map[string]*forwarder.Forwarder)
