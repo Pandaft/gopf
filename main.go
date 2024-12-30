@@ -10,16 +10,37 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
-const defaultConfigFile = "gopf.yaml"
+const (
+	version           = "v0.1.0"
+	defaultConfigFile = "gopf.yaml"
+)
 
+// UI样式定义
+var (
+	titleStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("99")).
+			MarginRight(1)
+
+	versionStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("246")).
+			Italic(true)
+
+	containerStyle = lipgloss.NewStyle().
+			Align(lipgloss.Center).
+			Width(80)
+)
+
+// 初始化空配置文件
 func initEmptyConfig(filename string) (*config.Config, error) {
 	cfg := &config.Config{
 		Rules: make([]config.ForwardRule, 0),
 	}
 
-	// 保存空配置到文件
 	if err := config.SaveConfig(filename, cfg); err != nil {
 		return nil, fmt.Errorf("创建配置文件失败: %v", err)
 	}
@@ -27,27 +48,25 @@ func initEmptyConfig(filename string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func main() {
-	configFile := flag.String("config", defaultConfigFile, "配置文件路径")
-	flag.Parse()
-
-	cfg, err := config.LoadConfig(*configFile)
+// 加载配置文件
+func loadConfig(filename string) (*config.Config, error) {
+	cfg, err := config.LoadConfig(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			log.Printf("配置文件 %s 不存在，创建新的配置文件...", *configFile)
-			if _, err = initEmptyConfig(*configFile); err != nil {
-				log.Fatalf("初始化配置文件失败: %v", err)
+			log.Printf("配置文件 %s 不存在，创建新的配置文件...", filename)
+			if _, err = initEmptyConfig(filename); err != nil {
+				return nil, fmt.Errorf("初始化配置文件失败: %v", err)
 			}
 			// 重新加载配置文件
-			cfg, err = config.LoadConfig(*configFile)
-			if err != nil {
-				log.Fatalf("加载新创建的配置文件失败: %v", err)
-			}
-		} else {
-			log.Fatalf("加载配置文件失败: %v", err)
+			return config.LoadConfig(filename)
 		}
+		return nil, fmt.Errorf("加载配置文件失败: %v", err)
 	}
+	return cfg, nil
+}
 
+// 启动所有转发规则
+func startForwarders(cfg *config.Config) map[string]*forwarder.Forwarder {
 	forwarders := make(map[string]*forwarder.Forwarder)
 	for i := range cfg.Rules {
 		rule := &cfg.Rules[i]
@@ -60,8 +79,11 @@ func main() {
 		rule.IsRunning = true
 		forwarders[rule.Name] = f
 	}
+	return forwarders
+}
 
-	// 处理信号
+// 设置信号处理
+func setupSignalHandler(forwarders map[string]*forwarder.Forwarder) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
@@ -73,6 +95,34 @@ func main() {
 		}
 		os.Exit(0)
 	}()
+}
+
+// 显示版本信息
+func printVersion() {
+	title := titleStyle.Render("GOPF")
+	ver := versionStyle.Render(version)
+	display := containerStyle.Render(fmt.Sprintf("%s %s", title, ver))
+	fmt.Println(display)
+}
+
+func main() {
+	printVersion()
+
+	// 解析命令行参数
+	configFile := flag.String("config", defaultConfigFile, "配置文件路径")
+	flag.Parse()
+
+	// 加载配置
+	cfg, err := loadConfig(*configFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// 启动转发器
+	forwarders := startForwarders(cfg)
+
+	// 设置信号处理
+	setupSignalHandler(forwarders)
 
 	// 启动UI
 	if err := ui.StartUI(cfg, forwarders); err != nil {
