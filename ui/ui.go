@@ -18,17 +18,63 @@ type model struct {
 	table      table.Model
 	rules      []config.ForwardRule
 	forwarders map[string]*forwarder.Forwarder
+	language   config.Language
+}
+
+var translations = map[config.Language]map[string]string{
+	config.Chinese: {
+		"name":        "名称",
+		"local_port":  "本地端口",
+		"remote_addr": "远程地址",
+		"status":      "状态",
+		"connections": "连接数",
+		"bytes_sent":  "发送流量",
+		"bytes_recv":  "接收流量",
+		"status_ok":   "正常",
+		"status_fail": "失败",
+		"exit_hint":   "按 q 退出（Press L to switch to English）",
+	},
+	config.English: {
+		"name":        "Name",
+		"local_port":  "Local Port",
+		"remote_addr": "Remote Address",
+		"status":      "Status",
+		"connections": "Connections",
+		"bytes_sent":  "Bytes Sent",
+		"bytes_recv":  "Bytes Recv",
+		"status_ok":   "OK",
+		"status_fail": "Failed",
+		"exit_hint":   "Press q to exit（按 L 切换中文）",
+	},
+}
+
+func (m model) tr(key string) string {
+	if t, ok := translations[m.language][key]; ok {
+		return t
+	}
+	return key
 }
 
 func NewModel(rules []config.ForwardRule, forwarders map[string]*forwarder.Forwarder) model {
+	m := model{
+		rules:      rules,
+		forwarders: forwarders,
+		language:   config.Chinese,
+	}
+
+	m.updateTable()
+	return m
+}
+
+func (m *model) updateTable() {
 	columns := []table.Column{
-		{Title: "名称", Width: 20},
-		{Title: "本地端口", Width: 10},
-		{Title: "远程地址", Width: 30},
-		{Title: "状态", Width: 10},
-		{Title: "连接数", Width: 10},
-		{Title: "发送流量", Width: 15},
-		{Title: "接收流量", Width: 15},
+		{Title: m.tr("name"), Width: 20},
+		{Title: m.tr("local_port"), Width: 10},
+		{Title: m.tr("remote_addr"), Width: 30},
+		{Title: m.tr("status"), Width: 10},
+		{Title: m.tr("connections"), Width: 10},
+		{Title: m.tr("bytes_sent"), Width: 15},
+		{Title: m.tr("bytes_recv"), Width: 15},
 	}
 
 	t := table.New(
@@ -49,11 +95,7 @@ func NewModel(rules []config.ForwardRule, forwarders map[string]*forwarder.Forwa
 		Bold(false)
 	t.SetStyles(s)
 
-	return model{
-		table:      t,
-		rules:      rules,
-		forwarders: forwarders,
-	}
+	m.table = t
 }
 
 func formatBytes(bytes uint64) string {
@@ -80,6 +122,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
+		case "L", "l":
+			if m.language == config.Chinese {
+				m.language = config.English
+			} else {
+				m.language = config.Chinese
+			}
+			m.updateTable()
+			return m, nil
 		}
 	}
 	m.table, cmd = m.table.Update(msg)
@@ -89,9 +139,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	var rows []table.Row
 	for _, rule := range m.rules {
-		status := rule.Status
+		status := m.tr("status_ok")
 		if rule.Error != "" {
-			status = "失败"
+			status = m.tr("status_fail")
 		}
 
 		rows = append(rows, table.Row{
@@ -116,7 +166,7 @@ func (m model) View() string {
 		}
 	}
 
-	return view + "\n按 q 退出"
+	return view + "\n" + m.tr("exit_hint")
 }
 
 func StartUI(rules []config.ForwardRule, forwarders map[string]*forwarder.Forwarder) error {

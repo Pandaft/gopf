@@ -12,6 +12,11 @@ import (
 	"syscall"
 )
 
+const (
+	StatusOK    = "正常"
+	StatusError = "失败"
+)
+
 func main() {
 	configFile := flag.String("config", "config.yaml", "配置文件路径")
 	flag.Parse()
@@ -24,11 +29,11 @@ func main() {
 	forwarders := make(map[string]*forwarder.Forwarder)
 	for i := range cfg.Rules {
 		rule := &cfg.Rules[i]
-		rule.Status = "正常"
+		rule.Status = StatusOK
 
 		f := forwarder.NewForwarder(rule)
 		if err := f.Start(); err != nil {
-			rule.Status = "失败"
+			rule.Status = StatusError
 			rule.Error = err.Error()
 			log.Printf("警告: 端口转发启动失败 [%s]: %v\n", rule.Name, err)
 			continue

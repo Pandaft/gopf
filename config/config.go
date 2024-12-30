@@ -6,6 +6,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type Language string
+
+const (
+	Chinese Language = "zh"
+	English Language = "en"
+)
+
 type ForwardRule struct {
 	Name        string `yaml:"name"`
 	LocalPort   int    `yaml:"local_port"`
