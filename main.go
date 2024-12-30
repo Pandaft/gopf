@@ -12,11 +12,6 @@ import (
 	"syscall"
 )
 
-const (
-	StatusOK    = "正常"
-	StatusError = "失败"
-)
-
 func main() {
 	configFile := flag.String("config", "config.yaml", "配置文件路径")
 	flag.Parse()
@@ -29,20 +24,14 @@ func main() {
 	forwarders := make(map[string]*forwarder.Forwarder)
 	for i := range cfg.Rules {
 		rule := &cfg.Rules[i]
-		rule.Status = StatusOK
-
 		f := forwarder.NewForwarder(rule)
 		if err := f.Start(); err != nil {
-			rule.Status = StatusError
 			rule.Error = err.Error()
 			log.Printf("警告: 端口转发启动失败 [%s]: %v\n", rule.Name, err)
 			continue
 		}
+		rule.IsRunning = true
 		forwarders[rule.Name] = f
-	}
-
-	if len(forwarders) == 0 {
-		log.Fatal("没有成功启动的端口转发")
 	}
 
 	// 处理信号
@@ -59,7 +48,7 @@ func main() {
 	}()
 
 	// 启动UI
-	if err := ui.StartUI(cfg.Rules, forwarders); err != nil {
+	if err := ui.StartUI(cfg, forwarders); err != nil {
 		log.Fatalf("UI启动失败: %v", err)
 	}
 }
