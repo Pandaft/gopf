@@ -23,7 +23,6 @@ gopf
 
 # Go 特定文件
 vendor/
-*.sum
 
 # 日志文件
 *.log
