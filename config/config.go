@@ -74,7 +74,7 @@ func (c *Config) UpdateRule(index int, rule ForwardRule) error {
 	// 检查端口是否已被其他规则使用
 	for i, r := range c.Rules {
 		if i != index && r.LocalPort == rule.LocalPort {
-			return fmt.Errorf("本地端口 %d 已被使用", rule.LocalPort)
+			return fmt.Errorf("本地端口 %d 已被规则 '%s' 使用", rule.LocalPort, r.Name)
 		}
 	}
 

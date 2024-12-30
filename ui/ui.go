@@ -275,10 +275,20 @@ func (m *model) startForwarder(rule *config.ForwardRule) error {
 }
 
 func (m *model) stopForwarder(rule *config.ForwardRule) {
+	// 通过规则名称查找并停止转发器
 	if f, ok := m.forwarders[rule.Name]; ok {
 		f.Stop()
 		delete(m.forwarders, rule.Name)
 	}
+
+	// 通过本地端口查找并停止可能存在的其他转发器
+	for name, f := range m.forwarders {
+		if f.GetLocalPort() == rule.LocalPort {
+			f.Stop()
+			delete(m.forwarders, name)
+		}
+	}
+
 	rule.IsRunning = false
 	rule.Error = ""
 }
@@ -468,11 +478,39 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.rules = m.config.Rules
 					m.table.SetCursor(len(m.rules) - 1)
 				} else {
-					if err := m.config.UpdateRule(m.table.Cursor(), rule); err != nil {
+					// 在更新规则前，先停止旧的转发器
+					idx := m.table.Cursor()
+					oldRule := &m.rules[idx]
+					wasRunning := oldRule.IsRunning
+					oldPort := oldRule.LocalPort
+
+					// 先停止旧的转发
+					if wasRunning {
+						m.stopForwarder(oldRule)
+					}
+
+					// 更新规则
+					if err := m.config.UpdateRule(idx, rule); err != nil {
+						// 如果更新失败，且原来是运行状态，则恢复旧的转发
+						if wasRunning {
+							oldRule.LocalPort = oldPort // 恢复旧端口
+							if err := m.startForwarder(oldRule); err != nil {
+								oldRule.Error = err.Error()
+							}
+						}
 						m.err = err
 						break
 					}
+
 					m.rules = m.config.Rules
+
+					// 如果原来是运行状态，启动新的转发
+					if wasRunning {
+						newRule := &m.rules[idx]
+						if err := m.startForwarder(newRule); err != nil {
+							newRule.Error = err.Error()
+						}
+					}
 				}
 
 				m.mode = normalMode

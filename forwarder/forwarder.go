@@ -136,3 +136,7 @@ func (f *Forwarder) ClearStats() {
 	atomic.StoreUint64(&f.rule.BytesRecv, 0)
 	atomic.StoreUint64(&f.rule.Connections, 0)
 }
+
+func (f *Forwarder) GetLocalPort() int {
+	return f.rule.LocalPort
+}
