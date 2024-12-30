@@ -105,6 +105,13 @@ var translations = map[config.Language]map[string]string{
 		"invalid_rport":  "无效的远程端口",
 		"confirm_keys":   "← →/h l 切换  Enter 确认  Esc 取消",
 		"stats_cleared":  "已清空统计数据",
+		"last_active":    "最后活跃",
+		"just_now":       "刚刚",
+		"seconds_ago":    "%d秒前",
+		"minutes_ago":    "%d分钟前",
+		"hours_ago":      "%d小时前",
+		"days_ago":       "%d天前",
+		"never":          "从未活跃",
 	},
 	config.English: {
 		"name":           "Name",
@@ -138,6 +145,13 @@ var translations = map[config.Language]map[string]string{
 		"invalid_rport":  "Invalid remote port",
 		"confirm_keys":   "← →/h l Switch  Enter Confirm  Esc Cancel",
 		"stats_cleared":  "Statistics cleared",
+		"last_active":    "Last Active",
+		"just_now":       "just now",
+		"seconds_ago":    "%ds ago",
+		"minutes_ago":    "%dm ago",
+		"hours_ago":      "%dh ago",
+		"days_ago":       "%dd ago",
+		"never":          "never",
 	},
 }
 
@@ -146,6 +160,28 @@ func (m model) tr(key string) string {
 		return t
 	}
 	return key
+}
+
+func formatLastActive(lastActive int64, tr func(string) string) string {
+	if lastActive == 0 {
+		return tr("never")
+	}
+
+	now := time.Now().Unix()
+	diff := now - lastActive
+
+	switch {
+	case diff < 5:
+		return tr("just_now")
+	case diff < 60:
+		return fmt.Sprintf(tr("seconds_ago"), diff)
+	case diff < 3600:
+		return fmt.Sprintf(tr("minutes_ago"), diff/60)
+	case diff < 86400:
+		return fmt.Sprintf(tr("hours_ago"), diff/3600)
+	default:
+		return fmt.Sprintf(tr("days_ago"), diff/86400)
+	}
 }
 
 func NewModel(cfg *config.Config, forwarders map[string]*forwarder.Forwarder) model {
@@ -167,6 +203,7 @@ func NewModel(cfg *config.Config, forwarders map[string]*forwarder.Forwarder) mo
 		{Title: m.tr("connections"), Width: 10},
 		{Title: m.tr("bytes_sent"), Width: 15},
 		{Title: m.tr("bytes_recv"), Width: 15},
+		{Title: m.tr("last_active"), Width: 15},
 	}
 
 	t := table.New(
@@ -210,7 +247,6 @@ func (m *model) initInputs() {
 }
 
 func (m *model) updateTable() {
-	// 只更新列标题
 	columns := []table.Column{
 		{Title: m.tr("name"), Width: 20},
 		{Title: m.tr("local_port"), Width: 10},
@@ -219,6 +255,7 @@ func (m *model) updateTable() {
 		{Title: m.tr("connections"), Width: 10},
 		{Title: m.tr("bytes_sent"), Width: 15},
 		{Title: m.tr("bytes_recv"), Width: 15},
+		{Title: m.tr("last_active"), Width: 15},
 	}
 	m.table.SetColumns(columns)
 	m.updateRows()
@@ -243,6 +280,7 @@ func (m *model) updateRows() {
 			fmt.Sprintf("%d", rule.Connections),
 			formatBytes(rule.BytesSent),
 			formatBytes(rule.BytesRecv),
+			formatLastActive(rule.LastActive, m.tr),
 		})
 	}
 	m.table.SetRows(rows)

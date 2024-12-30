@@ -25,6 +25,7 @@ type ForwardRule struct {
 	Status      string `yaml:"-"`
 	Error       string `yaml:"-"`
 	IsRunning   bool   `yaml:"-"`
+	LastActive  int64  `yaml:"-"`
 }
 
 type Config struct {

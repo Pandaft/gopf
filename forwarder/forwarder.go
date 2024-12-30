@@ -18,6 +18,7 @@ type Forwarder struct {
 	bytesSent   uint64
 	bytesRecv   uint64
 	connections uint64
+	lastActive  int64
 }
 
 func NewForwarder(rule *config.ForwardRule) *Forwarder {
@@ -37,6 +38,7 @@ func (f *Forwarder) Start() error {
 	atomic.StoreUint64(&f.bytesSent, 0)
 	atomic.StoreUint64(&f.bytesRecv, 0)
 	atomic.StoreUint64(&f.connections, 0)
+	f.updateLastActive()
 	go f.accept()
 	go f.updateStats()
 	return nil
@@ -54,6 +56,7 @@ func (f *Forwarder) updateStats() {
 			atomic.StoreUint64(&f.rule.BytesSent, atomic.LoadUint64(&f.bytesSent))
 			atomic.StoreUint64(&f.rule.BytesRecv, atomic.LoadUint64(&f.bytesRecv))
 			atomic.StoreUint64(&f.rule.Connections, atomic.LoadUint64(&f.connections))
+			atomic.StoreInt64(&f.rule.LastActive, atomic.LoadInt64(&f.lastActive))
 		}
 	}
 }
@@ -118,6 +121,8 @@ func (f *Forwarder) pipe(src, dst net.Conn) {
 					return
 				}
 
+				f.updateLastActive()
+
 				if src.LocalAddr().String() == fmt.Sprintf(":%d", f.rule.LocalPort) {
 					atomic.AddUint64(&f.bytesSent, uint64(n))
 				} else {
@@ -139,4 +144,8 @@ func (f *Forwarder) ClearStats() {
 
 func (f *Forwarder) GetLocalPort() int {
 	return f.rule.LocalPort
+}
+
+func (f *Forwarder) updateLastActive() {
+	atomic.StoreInt64(&f.lastActive, time.Now().Unix())
 }
