@@ -1,0 +1,33 @@
+# 二进制文件
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+gopf
+
+# 测试文件
+*.test
+*.tmp
+
+# 覆盖率文件
+*.out
+*.cover
+
+# IDE 相关
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Go 特定文件
+vendor/
+*.sum
+
+# 日志文件
+*.log
+
+# 操作系统文件
+.DS_Store
+Thumbs.db 

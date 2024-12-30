@@ -1,0 +1,15 @@
+rules:
+  - name: "SSH转发"
+    local_port: 2222
+    remote_host: "example.com"
+    remote_port: 22
+
+  - name: "Web转发"
+    local_port: 8080
+    remote_host: "example.com"
+    remote_port: 80
+
+  - name: "数据库转发"
+    local_port: 3306
+    remote_host: "db.example.com"
+    remote_port: 3306
