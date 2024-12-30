@@ -25,6 +25,7 @@ func NewModel(rules []config.ForwardRule, forwarders map[string]*forwarder.Forwa
 		{Title: "名称", Width: 20},
 		{Title: "本地端口", Width: 10},
 		{Title: "远程地址", Width: 30},
+		{Title: "状态", Width: 10},
 		{Title: "连接数", Width: 10},
 		{Title: "发送流量", Width: 15},
 		{Title: "接收流量", Width: 15},
@@ -88,10 +89,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	var rows []table.Row
 	for _, rule := range m.rules {
+		status := rule.Status
+		if rule.Error != "" {
+			status = "失败"
+		}
+
 		rows = append(rows, table.Row{
 			rule.Name,
 			fmt.Sprintf("%d", rule.LocalPort),
 			fmt.Sprintf("%s:%d", rule.RemoteHost, rule.RemotePort),
+			status,
 			fmt.Sprintf("%d", rule.Connections),
 			formatBytes(rule.BytesSent),
 			formatBytes(rule.BytesRecv),
@@ -99,7 +106,17 @@ func (m model) View() string {
 	}
 
 	m.table.SetRows(rows)
-	return baseStyle.Render(m.table.View()) + "\n按 q 退出"
+
+	view := baseStyle.Render(m.table.View())
+
+	// 错误信息显示
+	for _, rule := range m.rules {
+		if rule.Error != "" {
+			view += fmt.Sprintf("\n%s: %s", rule.Name, rule.Error)
+		}
+	}
+
+	return view + "\n按 q 退出"
 }
 
 func StartUI(rules []config.ForwardRule, forwarders map[string]*forwarder.Forwarder) error {

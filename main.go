@@ -24,11 +24,20 @@ func main() {
 	forwarders := make(map[string]*forwarder.Forwarder)
 	for i := range cfg.Rules {
 		rule := &cfg.Rules[i]
+		rule.Status = "正常"
+
 		f := forwarder.NewForwarder(rule)
 		if err := f.Start(); err != nil {
-			log.Fatalf("启动转发器失败 [%s]: %v", rule.Name, err)
+			rule.Status = "失败"
+			rule.Error = err.Error()
+			log.Printf("警告: 端口转发启动失败 [%s]: %v\n", rule.Name, err)
+			continue
 		}
 		forwarders[rule.Name] = f
+	}
+
+	if len(forwarders) == 0 {
+		log.Fatal("没有成功启动的端口转发")
 	}
 
 	// 处理信号
@@ -37,7 +46,7 @@ func main() {
 
 	go func() {
 		<-sigChan
-		fmt.Println("\n正在关闭所有转发器...")
+		fmt.Println("\n正在关闭所有端口转发...")
 		for _, f := range forwarders {
 			f.Stop()
 		}

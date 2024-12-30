@@ -14,6 +14,8 @@ type ForwardRule struct {
 	BytesSent   uint64 `yaml:"-"`
 	BytesRecv   uint64 `yaml:"-"`
 	Connections uint64 `yaml:"-"`
+	Status      string `yaml:"-"`
+	Error       string `yaml:"-"`
 }
 
 type Config struct {
