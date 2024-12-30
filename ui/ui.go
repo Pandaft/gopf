@@ -6,6 +6,7 @@ import (
 	"gopf/forwarder"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -279,14 +280,23 @@ func (m *model) stopForwarder(rule *config.ForwardRule) {
 	rule.Error = ""
 }
 
+type tickMsg time.Time
+
 func (m model) Init() tea.Cmd {
-	return nil
+	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
+		return tickMsg(t)
+	})
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
+	case tickMsg:
+		m.updateRows()
+		return m, tea.Tick(time.Second, func(t time.Time) tea.Msg {
+			return tickMsg(t)
+		})
 	case tea.KeyMsg:
 		switch m.mode {
 		case normalMode:
