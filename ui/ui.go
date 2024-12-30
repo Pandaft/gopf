@@ -6,6 +6,7 @@ import (
 	"gopf/forwarder"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -85,7 +86,7 @@ var translations = map[config.Language]map[string]string{
 		"running":        "运行中",
 		"stopped":        "已停止",
 		"exit_hint":      "按 q 退出（Press L to switch to English）",
-		"normal_hint":    "操作：[a]添加 [e]编辑 [d]删除 [s]启动/停止 [L]English [q]退出",
+		"normal_hint":    "操作：[a]添加 [e]编辑 [d]删除 [s]启动/停止 [c]清空统计 [L]English [q]退出",
 		"edit_hint":      "编辑模式：[enter]确认 [esc]取消 [tab]切换字段",
 		"add_hint":       "添加模式：[enter]确认 [esc]取消 [tab]切换字段",
 		"name_label":     "名称：",
@@ -103,6 +104,7 @@ var translations = map[config.Language]map[string]string{
 		"invalid_lport":  "无效的本地端口",
 		"invalid_rport":  "无效的远程端口",
 		"confirm_keys":   "← →/h l 切换  Enter 确认  Esc 取消",
+		"stats_cleared":  "已清空统计数据",
 	},
 	config.English: {
 		"name":           "Name",
@@ -117,7 +119,7 @@ var translations = map[config.Language]map[string]string{
 		"running":        "Running",
 		"stopped":        "Stopped",
 		"exit_hint":      "Press q to exit（按 L 切换中文）",
-		"normal_hint":    "Commands: [a]Add [e]Edit [d]Delete [s]Start/Stop [L]中文 [q]Exit",
+		"normal_hint":    "Commands: [a]Add [e]Edit [d]Delete [s]Start/Stop [c]Clear Stats [L]中文 [q]Exit",
 		"edit_hint":      "Edit Mode: [enter]Confirm [esc]Cancel [tab]Switch Field",
 		"add_hint":       "Add Mode: [enter]Confirm [esc]Cancel [tab]Switch Field",
 		"name_label":     "Name: ",
@@ -135,6 +137,7 @@ var translations = map[config.Language]map[string]string{
 		"invalid_lport":  "Invalid local port",
 		"invalid_rport":  "Invalid remote port",
 		"confirm_keys":   "← →/h l Switch  Enter Confirm  Esc Cancel",
+		"stats_cleared":  "Statistics cleared",
 	},
 }
 
@@ -280,6 +283,18 @@ func (m *model) stopForwarder(rule *config.ForwardRule) {
 	rule.Error = ""
 }
 
+func (m *model) clearStats(rule *config.ForwardRule) {
+	// 如果转发器正在运行，使用转发器的清空方法
+	if f, ok := m.forwarders[rule.Name]; ok {
+		f.ClearStats()
+	} else {
+		// 如果转发器没有运行，直接清空规则中的统计数据
+		atomic.StoreUint64(&rule.BytesSent, 0)
+		atomic.StoreUint64(&rule.BytesRecv, 0)
+		atomic.StoreUint64(&rule.Connections, 0)
+	}
+}
+
 type tickMsg time.Time
 
 func (m model) Init() tea.Cmd {
@@ -375,6 +390,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							rule.Error = ""
 						}
 					}
+				}
+			case "c":
+				if len(m.rules) > 0 {
+					idx := m.table.Cursor()
+					rule := &m.rules[idx]
+					m.clearStats(rule)
+					m.updateRows()
+					return m, nil
 				}
 			}
 		case confirmMode:
@@ -475,7 +498,6 @@ func (m model) View() string {
 
 	switch m.mode {
 	case normalMode:
-		m.updateRows() // 更新行数据
 		view = baseStyle.Render(m.table.View())
 
 		// 错误信息显示

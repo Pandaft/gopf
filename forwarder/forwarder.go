@@ -6,14 +6,18 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 type Forwarder struct {
-	rule     *config.ForwardRule
-	listener net.Listener
-	done     chan struct{}
-	mu       sync.Mutex
-	active   sync.WaitGroup
+	rule        *config.ForwardRule
+	listener    net.Listener
+	done        chan struct{}
+	mu          sync.Mutex
+	active      sync.WaitGroup
+	bytesSent   uint64
+	bytesRecv   uint64
+	connections uint64
 }
 
 func NewForwarder(rule *config.ForwardRule) *Forwarder {
@@ -30,8 +34,28 @@ func (f *Forwarder) Start() error {
 	}
 
 	f.listener = listener
+	atomic.StoreUint64(&f.bytesSent, 0)
+	atomic.StoreUint64(&f.bytesRecv, 0)
+	atomic.StoreUint64(&f.connections, 0)
 	go f.accept()
+	go f.updateStats()
 	return nil
+}
+
+func (f *Forwarder) updateStats() {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-f.done:
+			return
+		case <-ticker.C:
+			atomic.StoreUint64(&f.rule.BytesSent, atomic.LoadUint64(&f.bytesSent))
+			atomic.StoreUint64(&f.rule.BytesRecv, atomic.LoadUint64(&f.bytesRecv))
+			atomic.StoreUint64(&f.rule.Connections, atomic.LoadUint64(&f.connections))
+		}
+	}
 }
 
 func (f *Forwarder) Stop() {
@@ -56,12 +80,14 @@ func (f *Forwarder) accept() {
 			}
 		}
 
-		atomic.AddUint64(&f.rule.Connections, 1)
+		atomic.AddUint64(&f.connections, 1)
 		go f.handleConnection(conn)
 	}
 }
 
 func (f *Forwarder) handleConnection(local net.Conn) {
+	defer atomic.AddUint64(&f.connections, ^uint64(0))
+
 	remote, err := net.Dial("tcp", fmt.Sprintf("%s:%d", f.rule.RemoteHost, f.rule.RemotePort))
 	if err != nil {
 		local.Close()
@@ -93,11 +119,20 @@ func (f *Forwarder) pipe(src, dst net.Conn) {
 				}
 
 				if src.LocalAddr().String() == fmt.Sprintf(":%d", f.rule.LocalPort) {
-					atomic.AddUint64(&f.rule.BytesSent, uint64(n))
+					atomic.AddUint64(&f.bytesSent, uint64(n))
 				} else {
-					atomic.AddUint64(&f.rule.BytesRecv, uint64(n))
+					atomic.AddUint64(&f.bytesRecv, uint64(n))
 				}
 			}
 		}
 	}
+}
+
+func (f *Forwarder) ClearStats() {
+	atomic.StoreUint64(&f.bytesSent, 0)
+	atomic.StoreUint64(&f.bytesRecv, 0)
+	atomic.StoreUint64(&f.connections, 0)
+	atomic.StoreUint64(&f.rule.BytesSent, 0)
+	atomic.StoreUint64(&f.rule.BytesRecv, 0)
+	atomic.StoreUint64(&f.rule.Connections, 0)
 }
