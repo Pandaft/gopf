@@ -242,14 +242,30 @@ func (m *model) updateRows() {
 		})
 	}
 	m.table.SetRows(rows)
+
+	if len(rows) > 0 {
+		cursor := m.table.Cursor()
+		if cursor >= len(rows) {
+			m.table.SetCursor(len(rows) - 1)
+		}
+	}
 }
 
 func (m *model) startForwarder(rule *config.ForwardRule) error {
+	// 如果已经在运行，先停止
+	if rule.IsRunning {
+		m.stopForwarder(rule)
+	}
+
+	// 创建新的转发器
 	f := forwarder.NewForwarder(rule)
 	if err := f.Start(); err != nil {
+		rule.IsRunning = false
 		return err
 	}
+
 	rule.IsRunning = true
+	rule.Error = ""
 	m.forwarders[rule.Name] = f
 	return nil
 }
@@ -260,6 +276,7 @@ func (m *model) stopForwarder(rule *config.ForwardRule) {
 		delete(m.forwarders, rule.Name)
 	}
 	rule.IsRunning = false
+	rule.Error = ""
 }
 
 func (m model) Init() tea.Cmd {
@@ -275,7 +292,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case normalMode:
 			switch msg.String() {
 			case "up", "down", "k", "j":
-				m.table, cmd = m.table.Update(msg)
+				if len(m.rules) > 0 {
+					m.table, cmd = m.table.Update(msg)
+				}
 				return m, cmd
 			case "q", "ctrl+c":
 				return m, tea.Quit
@@ -363,6 +382,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.err = err
 					} else {
 						m.rules = m.config.Rules
+						m.updateRows()
 					}
 				}
 				m.mode = normalMode
@@ -412,16 +432,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.err = err
 						break
 					}
+					m.rules = m.config.Rules
+					m.table.SetCursor(len(m.rules) - 1)
 				} else {
 					if err := m.config.UpdateRule(m.table.Cursor(), rule); err != nil {
 						m.err = err
 						break
 					}
+					m.rules = m.config.Rules
 				}
 
-				m.rules = m.config.Rules
 				m.mode = normalMode
 				m.err = nil
+				m.updateRows()
 			}
 		}
 	}

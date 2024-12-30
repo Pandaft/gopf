@@ -3,7 +3,6 @@ package forwarder
 import (
 	"fmt"
 	"gopf/config"
-	"io"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -14,6 +13,7 @@ type Forwarder struct {
 	listener net.Listener
 	done     chan struct{}
 	mu       sync.Mutex
+	active   sync.WaitGroup
 }
 
 func NewForwarder(rule *config.ForwardRule) *Forwarder {
@@ -36,12 +36,12 @@ func (f *Forwarder) Start() error {
 
 func (f *Forwarder) Stop() {
 	f.mu.Lock()
-	defer f.mu.Unlock()
-
 	if f.listener != nil {
-		f.listener.Close()
 		close(f.done)
+		f.listener.Close()
+		f.listener = nil
 	}
+	f.mu.Unlock()
 }
 
 func (f *Forwarder) accept() {
@@ -78,23 +78,25 @@ func (f *Forwarder) pipe(src, dst net.Conn) {
 
 	buf := make([]byte, 32*1024)
 	for {
-		n, err := src.Read(buf)
-		if err != nil {
-			if err != io.EOF {
-				return
-			}
+		select {
+		case <-f.done:
 			return
-		}
-
-		if n > 0 {
-			if _, err := dst.Write(buf[:n]); err != nil {
+		default:
+			n, err := src.Read(buf)
+			if err != nil {
 				return
 			}
 
-			if src.LocalAddr().String() == fmt.Sprintf(":%d", f.rule.LocalPort) {
-				atomic.AddUint64(&f.rule.BytesSent, uint64(n))
-			} else {
-				atomic.AddUint64(&f.rule.BytesRecv, uint64(n))
+			if n > 0 {
+				if _, err := dst.Write(buf[:n]); err != nil {
+					return
+				}
+
+				if src.LocalAddr().String() == fmt.Sprintf(":%d", f.rule.LocalPort) {
+					atomic.AddUint64(&f.rule.BytesSent, uint64(n))
+				} else {
+					atomic.AddUint64(&f.rule.BytesRecv, uint64(n))
+				}
 			}
 		}
 	}
