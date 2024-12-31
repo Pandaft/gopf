@@ -42,11 +42,22 @@ var (
 				Foreground(lipgloss.Color("251")). // 浅灰色文字
 				Background(lipgloss.Color("237")). // 深灰色背景
 				Padding(0, 3)
+
+	inputStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FF06B7"))
+
+	labelStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#767676")).
+			Bold(true)
+
+	errorStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FF0000"))
 )
 
 type inputField struct {
 	textinput textinput.Model
 	label     string
+	validate  func(string) error
 }
 
 type mode int
@@ -74,84 +85,96 @@ type model struct {
 
 var translations = map[config.Language]map[string]string{
 	config.Chinese: {
-		"name":           "名称",
-		"local_port":     "本地端口",
-		"remote_addr":    "远程地址",
-		"status":         "状态",
-		"connections":    "连接数",
-		"bytes_sent":     "发送流量",
-		"bytes_recv":     "接收流量",
-		"status_ok":      "正常",
-		"status_fail":    "失败",
-		"running":        "运行中",
-		"stopped":        "已停止",
-		"exit_hint":      "按 q 退出（Press L to switch to English）",
-		"normal_hint":    "操作：[a]添加 [e]编辑 [d]删除 [s]启动/停止 [c]清空统计 [L]English [q]退出",
-		"edit_hint":      "编辑模式：[enter]确认 [esc]取消 [tab]切换字段",
-		"add_hint":       "添加模式：[enter]确认 [esc]取消 [tab]切换字段",
-		"name_label":     "名称：",
-		"lport_label":    "本地端口：",
-		"rhost_label":    "远程主机：",
-		"rport_label":    "远程端口：",
-		"confirm_delete": "确认删除转发规则 '%s' 吗？[y/N]",
-		"yes":            "是",
-		"no":             "否",
-		"confirm_title":  "⚠️  删除确认",
-		"confirm_warn":   "此操作无法撤销！",
-		"confirm_yes":    "是 (Y)",
-		"confirm_no":     "否 (N)",
-		"error_label":    "错误: ",
-		"invalid_lport":  "无效的本地端口",
-		"invalid_rport":  "无效的远程端口",
-		"confirm_keys":   "← →/h l 切换  Enter 确认  Esc 取消",
-		"stats_cleared":  "已清空统计数据",
-		"last_active":    "最后活跃",
-		"just_now":       "刚刚",
-		"seconds_ago":    "%d秒前",
-		"minutes_ago":    "%d分钟前",
-		"hours_ago":      "%d小时前",
-		"days_ago":       "%d天前",
-		"never":          "从未活跃",
+		"name":             "名称",
+		"local_port":       "本地端口",
+		"remote_addr":      "远程地址",
+		"status":           "状态",
+		"connections":      "连接数",
+		"bytes_sent":       "发送流量",
+		"bytes_recv":       "接收流量",
+		"status_ok":        "正常",
+		"status_fail":      "失败",
+		"running":          "运行中",
+		"stopped":          "已停止",
+		"exit_hint":        "按 q 退出（Press L to switch to English）",
+		"normal_hint":      "操作：[a]添加 [e]编辑 [d]删除 [s]启动/停止 [c]清空统计 [L]English [q]退出",
+		"edit_hint":        "编辑模式：[enter]确认 [esc]取消 [tab]切换字段",
+		"add_hint":         "添加模式：[enter]确认 [esc]取消 [tab]切换字段",
+		"name_label":       "名称：",
+		"lport_label":      "本地端口：",
+		"rhost_label":      "远程主机：",
+		"rport_label":      "远程端口：",
+		"confirm_delete":   "确认删除转发规则 '%s' 吗？[y/N]",
+		"yes":              "是",
+		"no":               "否",
+		"confirm_title":    "⚠️  删除确认",
+		"confirm_warn":     "此操作无法撤销！",
+		"confirm_yes":      "是 (Y)",
+		"confirm_no":       "否 (N)",
+		"error_label":      "错误: ",
+		"invalid_lport":    "无效的本地端口",
+		"invalid_rport":    "无效的远程端口",
+		"confirm_keys":     "← →/h l 切换  Enter 确认  Esc 取消",
+		"stats_cleared":    "已清空统计数据",
+		"last_active":      "最后活跃",
+		"just_now":         "刚刚",
+		"seconds_ago":      "%d秒前",
+		"minutes_ago":      "%d分钟前",
+		"hours_ago":        "%d小时前",
+		"days_ago":         "%d天前",
+		"never":            "从未活跃",
+		"add_title":        "添加转发规则",
+		"edit_title":       "编辑转发规则",
+		"err_empty_name":   "名称不能为空",
+		"err_numeric_port": "端口必须是数字",
+		"err_port_range":   "端口必须在 1-65535 之间",
+		"err_empty_host":   "主机地址不能为空",
 	},
 	config.English: {
-		"name":           "Name",
-		"local_port":     "Local Port",
-		"remote_addr":    "Remote Addr",
-		"status":         "Status",
-		"connections":    "Connections",
-		"bytes_sent":     "Bytes Sent",
-		"bytes_recv":     "Bytes Recv",
-		"status_ok":      "OK",
-		"status_fail":    "Failed",
-		"running":        "Running",
-		"stopped":        "Stopped",
-		"exit_hint":      "Press q to exit（按 L 切换中文）",
-		"normal_hint":    "Commands: [a]Add [e]Edit [d]Delete [s]Start/Stop [c]Clear Stats [L]中文 [q]Exit",
-		"edit_hint":      "Edit Mode: [enter]Confirm [esc]Cancel [tab]Switch Field",
-		"add_hint":       "Add Mode: [enter]Confirm [esc]Cancel [tab]Switch Field",
-		"name_label":     "Name: ",
-		"lport_label":    "Local Port: ",
-		"rhost_label":    "Remote Host: ",
-		"rport_label":    "Remote Port: ",
-		"confirm_delete": "Are you sure to delete forwarding rule '%s'? [y/N]",
-		"yes":            "Yes",
-		"no":             "No",
-		"confirm_title":  "⚠️  Confirm Deletion",
-		"confirm_warn":   "This action cannot be undone!",
-		"confirm_yes":    "Yes (Y)",
-		"confirm_no":     "No (N)",
-		"error_label":    "Error: ",
-		"invalid_lport":  "Invalid local port",
-		"invalid_rport":  "Invalid remote port",
-		"confirm_keys":   "← →/h l Switch  Enter Confirm  Esc Cancel",
-		"stats_cleared":  "Statistics cleared",
-		"last_active":    "Last Active",
-		"just_now":       "just now",
-		"seconds_ago":    "%ds ago",
-		"minutes_ago":    "%dm ago",
-		"hours_ago":      "%dh ago",
-		"days_ago":       "%dd ago",
-		"never":          "never",
+		"name":             "Name",
+		"local_port":       "Local Port",
+		"remote_addr":      "Remote Addr",
+		"status":           "Status",
+		"connections":      "Connections",
+		"bytes_sent":       "Bytes Sent",
+		"bytes_recv":       "Bytes Recv",
+		"status_ok":        "OK",
+		"status_fail":      "Failed",
+		"running":          "Running",
+		"stopped":          "Stopped",
+		"exit_hint":        "Press q to exit（按 L 切换中文）",
+		"normal_hint":      "Commands: [a]Add [e]Edit [d]Delete [s]Start/Stop [c]Clear Stats [L]中文 [q]Exit",
+		"edit_hint":        "Edit Mode: [enter]Confirm [esc]Cancel [tab]Switch Field",
+		"add_hint":         "Add Mode: [enter]Confirm [esc]Cancel [tab]Switch Field",
+		"name_label":       "Name: ",
+		"lport_label":      "Local Port: ",
+		"rhost_label":      "Remote Host: ",
+		"rport_label":      "Remote Port: ",
+		"confirm_delete":   "Are you sure to delete forwarding rule '%s'? [y/N]",
+		"yes":              "Yes",
+		"no":               "No",
+		"confirm_title":    "⚠️  Confirm Deletion",
+		"confirm_warn":     "This action cannot be undone!",
+		"confirm_yes":      "Yes (Y)",
+		"confirm_no":       "No (N)",
+		"error_label":      "Error: ",
+		"invalid_lport":    "Invalid local port",
+		"invalid_rport":    "Invalid remote port",
+		"confirm_keys":     "← →/h l Switch  Enter Confirm  Esc Cancel",
+		"stats_cleared":    "Statistics cleared",
+		"last_active":      "Last Active",
+		"just_now":         "just now",
+		"seconds_ago":      "%ds ago",
+		"minutes_ago":      "%dm ago",
+		"hours_ago":        "%dh ago",
+		"days_ago":         "%dd ago",
+		"never":            "never",
+		"add_title":        "Add Forwarding Rule",
+		"edit_title":       "Edit Forwarding Rule",
+		"err_empty_name":   "Name cannot be empty",
+		"err_numeric_port": "Port must be numeric",
+		"err_port_range":   "Port must be between 1-65535",
+		"err_empty_host":   "Host address cannot be empty",
 	},
 }
 
@@ -233,16 +256,26 @@ func NewModel(cfg *config.Config, forwarders map[string]*forwarder.Forwarder) mo
 
 func (m *model) initInputs() {
 	m.inputs = []inputField{
-		{textinput.New(), m.tr("name_label")},
-		{textinput.New(), m.tr("lport_label")},
-		{textinput.New(), m.tr("rhost_label")},
-		{textinput.New(), m.tr("rport_label")},
+		{textinput.New(), m.tr("name_label"), m.validateName},
+		{textinput.New(), m.tr("lport_label"), m.validatePort},
+		{textinput.New(), m.tr("rhost_label"), m.validateHost},
+		{textinput.New(), m.tr("rport_label"), m.validatePort},
 	}
 
 	for i := range m.inputs {
 		m.inputs[i].textinput.Focus()
-		m.inputs[i].textinput.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+		m.inputs[i].textinput.PromptStyle = inputStyle
 		m.inputs[i].textinput.TextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
+
+		// 设置占位符文本
+		switch i {
+		case 0:
+			m.inputs[i].textinput.Placeholder = "my-forward"
+		case 1, 3:
+			m.inputs[i].textinput.Placeholder = "1-65535"
+		case 2:
+			m.inputs[i].textinput.Placeholder = "example.com"
+		}
 	}
 }
 
@@ -492,6 +525,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			case "enter":
+				// 验证所有输入
+				var hasError bool
+				for i := range m.inputs {
+					if err := m.inputs[i].validate(m.inputs[i].textinput.Value()); err != nil {
+						m.err = err
+						hasError = true
+						break
+					}
+				}
+
+				if hasError {
+					break
+				}
+
 				var rule config.ForwardRule
 				var err error
 
@@ -623,14 +670,33 @@ func (m model) View() string {
 			hint = m.tr("edit_hint")
 		}
 
+		// 添加标题
+		title := m.tr("add_title")
+		if m.mode == editMode {
+			title = m.tr("edit_title")
+		}
+		b.WriteString(labelStyle.Render(title) + "\n\n")
+
+		// 渲染输入框
 		for i := range m.inputs {
-			b.WriteString(m.inputs[i].label)
-			b.WriteString(m.inputs[i].textinput.View())
+			// 标签
+			b.WriteString(labelStyle.Render(m.inputs[i].label) + "\n")
+
+			// 输入框
+			b.WriteString(m.inputs[i].textinput.View() + "\n")
+
+			// 验证错误
+			if m.inputs[i].textinput.Value() != "" {
+				if err := m.inputs[i].validate(m.inputs[i].textinput.Value()); err != nil {
+					b.WriteString(errorStyle.Render("  ↑ "+err.Error()) + "\n")
+				}
+			}
+
 			b.WriteString("\n")
 		}
 
 		if m.err != nil {
-			b.WriteString(fmt.Sprintf("\n%s%v\n", m.tr("error_label"), m.err))
+			b.WriteString("\n" + errorStyle.Render(m.tr("error_label")+m.err.Error()) + "\n")
 		}
 
 		b.WriteString("\n" + hint)
@@ -657,4 +723,29 @@ func StartUI(cfg *config.Config, forwarders map[string]*forwarder.Forwarder) err
 	p := tea.NewProgram(NewModel(cfg, forwarders))
 	_, err := p.Run()
 	return err
+}
+
+func (m model) validateName(s string) error {
+	if s == "" {
+		return fmt.Errorf(m.tr("err_empty_name"))
+	}
+	return nil
+}
+
+func (m model) validatePort(s string) error {
+	port, err := strconv.Atoi(s)
+	if err != nil {
+		return fmt.Errorf(m.tr("err_numeric_port"))
+	}
+	if port < 1 || port > 65535 {
+		return fmt.Errorf(m.tr("err_port_range"))
+	}
+	return nil
+}
+
+func (m model) validateHost(s string) error {
+	if s == "" {
+		return fmt.Errorf(m.tr("err_empty_host"))
+	}
+	return nil
 }
