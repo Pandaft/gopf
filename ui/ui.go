@@ -52,6 +52,10 @@ var (
 
 	errorStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FF0000"))
+
+	keyStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("205")).
+			Bold(true)
 )
 
 type inputField struct {
@@ -96,10 +100,10 @@ var translations = map[config.Language]map[string]string{
 		"status_fail":      "失败",
 		"running":          "运行中",
 		"stopped":          "已停止",
-		"exit_hint":        "按 q 退出（Press L to switch to English）",
-		"normal_hint":      "操作：[a]添加 [e]编辑 [d]删除 [s]启动/停止 [c]清空统计 [L]English [q]退出",
-		"edit_hint":        "编辑模式：[enter]确认 [esc]取消 [tab]切换字段",
-		"add_hint":         "添加模式：[enter]确认 [esc]取消 [tab]切换字段",
+		"exit_hint":        "按 %s 退出",
+		"normal_hint":      "操作：%s添加 %s编辑 %s删除 %s启动/停止 %s清空统计 %sEnglish %s退出",
+		"edit_hint":        "编辑模式：%s确认 %s取消 %s切换字段",
+		"add_hint":         "添加模式：%s确认 %s取消 %s切换字段",
 		"name_label":       "名称：",
 		"lport_label":      "本地端口：",
 		"rhost_label":      "远程主机：",
@@ -142,10 +146,10 @@ var translations = map[config.Language]map[string]string{
 		"status_fail":      "Failed",
 		"running":          "Running",
 		"stopped":          "Stopped",
-		"exit_hint":        "Press q to exit（按 L 切换中文）",
-		"normal_hint":      "Commands: [a]Add [e]Edit [d]Delete [s]Start/Stop [c]Clear Stats [L]中文 [q]Exit",
-		"edit_hint":        "Edit Mode: [enter]Confirm [esc]Cancel [tab]Switch Field",
-		"add_hint":         "Add Mode: [enter]Confirm [esc]Cancel [tab]Switch Field",
+		"exit_hint":        "Press %s to exit",
+		"normal_hint":      "Commands: %sAdd %sEdit %sDelete %sStart/Stop %sClear Stats %s中文 %sExit",
+		"edit_hint":        "Edit Mode: %sConfirm %sCancel %sSwitch Field",
+		"add_hint":         "Add Mode: %sConfirm %sCancel %sSwitch Field",
 		"name_label":       "Name: ",
 		"lport_label":      "Local Port: ",
 		"rhost_label":      "Remote Host: ",
@@ -630,44 +634,31 @@ func (m model) View() string {
 			}
 		}
 
-		view += "\n" + m.tr("normal_hint")
-	case confirmMode:
-		// 构建确认对话框
-		var confirmBox strings.Builder
+		hint := fmt.Sprintf(m.tr("normal_hint"),
+			keyStyle.Render("[a]"),
+			keyStyle.Render("[e]"),
+			keyStyle.Render("[d]"),
+			keyStyle.Render("[s]"),
+			keyStyle.Render("[c]"),
+			keyStyle.Render("[L]"),
+			keyStyle.Render("[q]"),
+		)
+		view += "\n" + hint
 
-		// 标题
-		confirmBox.WriteString(m.tr("confirm_title") + "\n\n")
-
-		// 确认消息
-		confirmBox.WriteString(fmt.Sprintf(m.tr("confirm_delete"), m.rules[m.table.Cursor()].Name) + "\n")
-		confirmBox.WriteString(warningStyle.Render(m.tr("confirm_warn")) + "\n\n")
-
-		// 按钮
-		var yesButton, noButton string
-		if m.confirmYes {
-			yesButton = selectedButtonStyle.Render(m.tr("confirm_yes"))
-			noButton = unselectedButtonStyle.Render(m.tr("confirm_no"))
-		} else {
-			yesButton = unselectedButtonStyle.Render(m.tr("confirm_yes"))
-			noButton = selectedButtonStyle.Render(m.tr("confirm_no"))
-		}
-
-		buttons := fmt.Sprintf("%s  %s", yesButton, noButton)
-		confirmBox.WriteString(buttons + "\n\n")
-
-		// 添加操作提示
-		hint := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("240")).
-			Render(m.tr("confirm_keys"))
-		confirmBox.WriteString(hint)
-
-		// 只显示确认框，不显示表格
-		view = "\n\n" + confirmStyle.Render(confirmBox.String())
 	case addMode, editMode:
 		var b strings.Builder
-		hint := m.tr("add_hint")
+
+		hint := fmt.Sprintf(m.tr("add_hint"),
+			keyStyle.Render("[enter]"),
+			keyStyle.Render("[esc]"),
+			keyStyle.Render("[tab]"),
+		)
 		if m.mode == editMode {
-			hint = m.tr("edit_hint")
+			hint = fmt.Sprintf(m.tr("edit_hint"),
+				keyStyle.Render("[enter]"),
+				keyStyle.Render("[esc]"),
+				keyStyle.Render("[tab]"),
+			)
 		}
 
 		// 添加标题
@@ -701,6 +692,39 @@ func (m model) View() string {
 
 		b.WriteString("\n" + hint)
 		view = b.String()
+
+	case confirmMode:
+		// 构建确认对话框
+		var confirmBox strings.Builder
+
+		// 标题
+		confirmBox.WriteString(m.tr("confirm_title") + "\n\n")
+
+		// 确认消息
+		confirmBox.WriteString(fmt.Sprintf(m.tr("confirm_delete"), m.rules[m.table.Cursor()].Name) + "\n")
+		confirmBox.WriteString(warningStyle.Render(m.tr("confirm_warn")) + "\n\n")
+
+		// 按钮
+		var yesButton, noButton string
+		if m.confirmYes {
+			yesButton = selectedButtonStyle.Render(m.tr("confirm_yes"))
+			noButton = unselectedButtonStyle.Render(m.tr("confirm_no"))
+		} else {
+			yesButton = unselectedButtonStyle.Render(m.tr("confirm_yes"))
+			noButton = selectedButtonStyle.Render(m.tr("confirm_no"))
+		}
+
+		buttons := fmt.Sprintf("%s  %s", yesButton, noButton)
+		confirmBox.WriteString(buttons + "\n\n")
+
+		// 添加操作提示
+		hint := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("240")).
+			Render(m.tr("confirm_keys"))
+		confirmBox.WriteString(hint)
+
+		// 只显示确认框，不显示表格
+		view = "\n\n" + confirmStyle.Render(confirmBox.String())
 	}
 
 	return view

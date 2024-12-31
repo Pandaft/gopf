@@ -23,16 +23,12 @@ const (
 var (
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("99")).
-			MarginRight(1)
+			Foreground(lipgloss.Color("205")).
+			MarginLeft(2)
 
 	versionStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("246")).
+			Foreground(lipgloss.Color("240")).
 			Italic(true)
-
-	containerStyle = lipgloss.NewStyle().
-			Align(lipgloss.Center).
-			Width(80)
 )
 
 // 初始化空配置文件
@@ -101,8 +97,7 @@ func setupSignalHandler(forwarders map[string]*forwarder.Forwarder) {
 func printVersion() {
 	title := titleStyle.Render("GOPF")
 	ver := versionStyle.Render(version)
-	display := containerStyle.Render(fmt.Sprintf("%s %s", title, ver))
-	fmt.Println(display)
+	fmt.Printf("%s %s\n", title, ver)
 }
 
 func main() {
