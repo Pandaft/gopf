@@ -123,7 +123,7 @@ func (f *Forwarder) pipe(src, dst net.Conn) {
 
 				f.updateLastActive()
 
-				if src.LocalAddr().String() == fmt.Sprintf(":%d", f.rule.LocalPort) {
+				if dst.RemoteAddr().String() == fmt.Sprintf("%s:%d", f.rule.RemoteHost, f.rule.RemotePort) {
 					atomic.AddUint64(&f.bytesSent, uint64(n))
 				} else {
 					atomic.AddUint64(&f.bytesRecv, uint64(n))
