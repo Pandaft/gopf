@@ -465,14 +465,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "s":
 				if len(m.rules) > 0 {
 					idx := m.table.Cursor()
-					rule := &m.rules[idx]
-					if rule.IsRunning {
-						m.stopForwarder(rule)
-					} else {
-						if err := m.startForwarder(rule); err != nil {
-							rule.Error = err.Error()
+					if idx >= 0 && idx < len(m.rules) {
+						rule := &m.rules[idx]
+						if rule.IsRunning {
+							m.stopForwarder(rule)
 						} else {
-							rule.Error = ""
+							if err := m.startForwarder(rule); err != nil {
+								rule.Error = err.Error()
+							} else {
+								rule.Error = ""
+							}
 						}
 					}
 				}
@@ -566,6 +568,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					m.rules = m.config.Rules
 					m.table.SetCursor(len(m.rules) - 1)
+					if len(m.rules) == 1 {
+						m.table.SetCursor(0)
+					}
 				} else {
 					// 在更新规则前，先停止旧的转发器
 					idx := m.table.Cursor()
