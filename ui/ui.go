@@ -567,9 +567,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						break
 					}
 					m.rules = m.config.Rules
-					m.table.SetCursor(len(m.rules) - 1)
-					if len(m.rules) == 1 {
-						m.table.SetCursor(0)
+
+					newRule := &m.rules[(len(m.rules) - 1)]
+					if err := m.startForwarder(newRule); err != nil {
+						newRule.Error = err.Error()
 					}
 				} else {
 					// 在更新规则前，先停止旧的转发器
