@@ -14,7 +14,7 @@ A lightweight port forwarding tool written in Go with a beautiful terminal user 
 
 ## Interface Preview
 
-![Terminal UI Preview](https://raw.githubusercontent.com/Pandaft/static-files/refs/heads/main/repo/gopf/images/en.webp)
+![Screenshot](https://raw.githubusercontent.com/Pandaft/static-files/refs/heads/main/repo/gopf/images/en.webp)
 
 ## Installation
 
@@ -84,12 +84,14 @@ rules:
     remote_port: 80                 # HTTP default port
 ```
 
-## Keyboard Shortcuts
+## Keyboard Hotkeys
 
 - `↑/↓`: Select rules
+- `←/→`: Select options
 - `s`: Start/Stop rule
 - `a`: Add rule
 - `d`: Delete rule
+- `c`: Clear statistics
 - `q`: Quit
 
 ## License

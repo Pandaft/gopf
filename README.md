@@ -14,7 +14,7 @@
 
 ## 界面预览
 
-![终端界面预览](https://raw.githubusercontent.com/Pandaft/static-files/refs/heads/main/repo/gopf/images/zh.webp)
+![截图](https://raw.githubusercontent.com/Pandaft/static-files/refs/heads/main/repo/gopf/images/zh.webp)
 
 ## 安装
 
@@ -84,12 +84,14 @@ rules:
     remote_port: 80                 # HTTP 默认端口
 ```
 
-## 键盘快捷键
+## 键盘热键
 
 - `↑/↓`: 选择规则
+- `←/→`: 选择选项
 - `s`: 启动/停止规则
 - `a`: 添加规则
 - `d`: 删除规则
+- `c`: 清空统计数据
 - `q`: 退出程序
 
 ## 许可证
