@@ -432,28 +432,36 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "a":
 				m.mode = addMode
 				m.focusIndex = 0
+				m.err = nil
 				for i := range m.inputs {
-					m.inputs[i].textinput.SetValue("")
+					m.inputs[i].textinput.Reset()
 					if i == 0 {
 						m.inputs[i].textinput.Focus()
 					} else {
 						m.inputs[i].textinput.Blur()
 					}
 				}
+				return m, nil
 			case "e":
 				if len(m.rules) > 0 {
 					m.mode = editMode
 					m.focusIndex = 0
+					m.err = nil
 					rule := m.rules[m.table.Cursor()]
+					for i := range m.inputs {
+						m.inputs[i].textinput.Reset()
+						if i == 0 {
+							m.inputs[i].textinput.Focus()
+						} else {
+							m.inputs[i].textinput.Blur()
+						}
+					}
 					m.inputs[0].textinput.SetValue(rule.Name)
 					m.inputs[1].textinput.SetValue(fmt.Sprintf("%d", rule.LocalPort))
 					m.inputs[2].textinput.SetValue(rule.RemoteHost)
 					m.inputs[3].textinput.SetValue(fmt.Sprintf("%d", rule.RemotePort))
-					m.inputs[0].textinput.Focus()
-					for i := 1; i < len(m.inputs); i++ {
-						m.inputs[i].textinput.Blur()
-					}
 				}
+				return m, nil
 			case "d":
 				if len(m.rules) > 0 {
 					idx := m.table.Cursor()
