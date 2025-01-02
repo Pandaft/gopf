@@ -85,6 +85,7 @@ type model struct {
 	err        error
 	confirmMsg string
 	confirmYes bool
+	version    string
 }
 
 var translations = map[config.Language]map[string]string{
@@ -211,7 +212,7 @@ func formatLastActive(lastActive int64, tr func(string) string) string {
 	}
 }
 
-func NewModel(cfg *config.Config, forwarders map[string]*forwarder.Forwarder) model {
+func NewModel(cfg *config.Config, forwarders map[string]*forwarder.Forwarder, version string) model {
 	m := model{
 		config:     cfg,
 		rules:      cfg.Rules,
@@ -219,6 +220,7 @@ func NewModel(cfg *config.Config, forwarders map[string]*forwarder.Forwarder) mo
 		language:   config.Chinese,
 		mode:       normalMode,
 		confirmYes: false,
+		version:    version,
 	}
 
 	// 创建表格
@@ -637,9 +639,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	var view string
 
+	// 添加标题和版本信息
+	title := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("205")).
+		MarginLeft(2).
+		Render("GOPF")
+	version := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("240")).
+		Italic(true).
+		Render(m.version)
+	view = fmt.Sprintf("%s %s\n", title, version)
+
 	switch m.mode {
 	case normalMode:
-		view = baseStyle.Render(m.table.View())
+		view += baseStyle.Render(m.table.View())
 
 		// 错误信息显示
 		for _, rule := range m.rules {
@@ -757,8 +771,11 @@ func formatBytes(bytes uint64) string {
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 
-func StartUI(cfg *config.Config, forwarders map[string]*forwarder.Forwarder) error {
-	p := tea.NewProgram(NewModel(cfg, forwarders))
+func StartUI(cfg *config.Config, forwarders map[string]*forwarder.Forwarder, version string) error {
+	p := tea.NewProgram(
+		NewModel(cfg, forwarders, version),
+		tea.WithAltScreen(),
+	)
 	_, err := p.Run()
 	return err
 }

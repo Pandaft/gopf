@@ -101,8 +101,6 @@ func printVersion() {
 }
 
 func main() {
-	printVersion()
-
 	// 解析命令行参数
 	configFile := flag.String("config", defaultConfigFile, "配置文件路径")
 	flag.Parse()
@@ -120,7 +118,7 @@ func main() {
 	setupSignalHandler(forwarders)
 
 	// 启动UI
-	if err := ui.StartUI(cfg, forwarders); err != nil {
+	if err := ui.StartUI(cfg, forwarders, version); err != nil {
 		log.Fatalf("UI启动失败: %v", err)
 	}
 }
