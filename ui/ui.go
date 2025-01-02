@@ -43,6 +43,10 @@ var (
 				Background(lipgloss.Color("237")). // 深灰色背景
 				Padding(0, 3)
 
+	// 禁用状态的按钮样式 - 使用更暗的灰色
+	disabledButtonStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("240"))
+
 	inputStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FF06B7"))
 
@@ -90,96 +94,98 @@ type model struct {
 
 var translations = map[config.Language]map[string]string{
 	config.Chinese: {
-		"name":             "名称",
-		"local_port":       "本地端口",
-		"remote_addr":      "远程地址",
-		"status":           "状态",
-		"connections":      "连接数",
-		"bytes_sent":       "发送流量",
-		"bytes_recv":       "接收流量",
-		"status_ok":        "正常",
-		"status_fail":      "失败",
-		"running":          "运行中",
-		"stopped":          "已停止",
-		"exit_hint":        "按 %s 退出",
-		"normal_hint":      "操作：%s添加 %s编辑 %s删除 %s启动/停止 %s清空统计 %sEnglish %s退出",
-		"edit_hint":        "编辑模式：%s确认 %s取消 %s切换字段",
-		"add_hint":         "添加模式：%s确认 %s取消 %s切换字段",
-		"name_label":       "名称：",
-		"lport_label":      "本地端口：",
-		"rhost_label":      "远程主机：",
-		"rport_label":      "远程端口：",
-		"confirm_delete":   "确认删除转发规则 '%s' 吗？[y/N]",
-		"yes":              "是",
-		"no":               "否",
-		"confirm_title":    "⚠️  删除确认",
-		"confirm_warn":     "此操作无法撤销！",
-		"confirm_yes":      "是 (Y)",
-		"confirm_no":       "否 (N)",
-		"error_label":      "错误: ",
-		"invalid_lport":    "无效的本地端口",
-		"invalid_rport":    "无效的远程端口",
-		"confirm_keys":     "← →/h l 切换  Enter 确认  Esc 取消",
-		"stats_cleared":    "已清空统计数据",
-		"last_active":      "最后活跃",
-		"just_now":         "刚刚",
-		"seconds_ago":      "%d秒前",
-		"minutes_ago":      "%d分钟前",
-		"hours_ago":        "%d小时前",
-		"days_ago":         "%d天前",
-		"never":            "从未活跃",
-		"add_title":        "添加转发规则",
-		"edit_title":       "编辑转发规则",
-		"err_empty_name":   "名称不能为空",
-		"err_numeric_port": "端口必须是数字",
-		"err_port_range":   "端口必须在 1-65535 之间",
-		"err_empty_host":   "主机地址不能为空",
+		"name":               "名称",
+		"local_port":         "本地端口",
+		"remote_addr":        "远程地址",
+		"status":             "状态",
+		"connections":        "连接数",
+		"bytes_sent":         "发送流量",
+		"bytes_recv":         "接收流量",
+		"status_ok":          "正常",
+		"status_fail":        "失败",
+		"running":            "运行中",
+		"stopped":            "已停止",
+		"exit_hint":          "按 %s 退出",
+		"normal_hint":        "操作：%s添加 %s编辑 %s删除 %s启动/停止 %s清空统计 %sEnglish %s退出",
+		"edit_hint":          "编辑模式：%s确认 %s取消 %s切换字段",
+		"add_hint":           "添加模式：%s确认 %s取消 %s切换字段",
+		"name_label":         "名称：",
+		"lport_label":        "本地端口：",
+		"rhost_label":        "远程主机：",
+		"rport_label":        "远程端口：",
+		"confirm_delete":     "确认删除转发规则 '%s' 吗？[y/N]",
+		"yes":                "是",
+		"no":                 "否",
+		"confirm_title":      "⚠️  删除确认",
+		"confirm_warn":       "此操作无法撤销！",
+		"confirm_yes":        "是 (Y)",
+		"confirm_no":         "否 (N)",
+		"error_label":        "错误: ",
+		"invalid_lport":      "无效的本地端口",
+		"invalid_rport":      "无效的远程端口",
+		"confirm_keys":       "← →/h l 切换  Enter 确认  Esc 取消",
+		"stats_cleared":      "已清空统计数据",
+		"last_active":        "最后活跃",
+		"just_now":           "刚刚",
+		"seconds_ago":        "%d秒前",
+		"minutes_ago":        "%d分钟前",
+		"hours_ago":          "%d小时前",
+		"days_ago":           "%d天前",
+		"never":              "从未活跃",
+		"add_title":          "添加转发规则",
+		"edit_title":         "编辑转发规则",
+		"err_empty_name":     "名称不能为空",
+		"err_numeric_port":   "端口必须是数字",
+		"err_port_range":     "端口必须在 1-65535 之间",
+		"err_empty_host":     "主机地址不能为空",
+		"please_select_rule": "请先选择一个规则",
 	},
 	config.English: {
-		"name":             "Name",
-		"local_port":       "Local Port",
-		"remote_addr":      "Remote Addr",
-		"status":           "Status",
-		"connections":      "Connections",
-		"bytes_sent":       "Bytes Sent",
-		"bytes_recv":       "Bytes Recv",
-		"status_ok":        "OK",
-		"status_fail":      "Failed",
-		"running":          "Running",
-		"stopped":          "Stopped",
-		"exit_hint":        "Press %s to exit",
-		"normal_hint":      "Commands: %sAdd %sEdit %sDelete %sStart/Stop %sClear Stats %s中文 %sExit",
-		"edit_hint":        "Edit Mode: %sConfirm %sCancel %sSwitch Field",
-		"add_hint":         "Add Mode: %sConfirm %sCancel %sSwitch Field",
-		"name_label":       "Name: ",
-		"lport_label":      "Local Port: ",
-		"rhost_label":      "Remote Host: ",
-		"rport_label":      "Remote Port: ",
-		"confirm_delete":   "Are you sure to delete forwarding rule '%s'? [y/N]",
-		"yes":              "Yes",
-		"no":               "No",
-		"confirm_title":    "⚠️  Confirm Deletion",
-		"confirm_warn":     "This action cannot be undone!",
-		"confirm_yes":      "Yes (Y)",
-		"confirm_no":       "No (N)",
-		"error_label":      "Error: ",
-		"invalid_lport":    "Invalid local port",
-		"invalid_rport":    "Invalid remote port",
-		"confirm_keys":     "← →/h l Switch  Enter Confirm  Esc Cancel",
-		"stats_cleared":    "Statistics cleared",
-		"last_active":      "Last Active",
-		"just_now":         "just now",
-		"seconds_ago":      "%ds ago",
-		"minutes_ago":      "%dm ago",
-		"hours_ago":        "%dh ago",
-		"days_ago":         "%dd ago",
-		"never":            "never",
-		"add_title":        "Add Forwarding Rule",
-		"edit_title":       "Edit Forwarding Rule",
-		"err_empty_name":   "Name cannot be empty",
-		"err_numeric_port": "Port must be numeric",
-		"err_port_range":   "Port must be between 1-65535",
-		"err_empty_host":   "Host address cannot be empty",
+		"name":               "Name",
+		"local_port":         "Local Port",
+		"remote_addr":        "Remote Addr",
+		"status":             "Status",
+		"connections":        "Connections",
+		"bytes_sent":         "Bytes Sent",
+		"bytes_recv":         "Bytes Recv",
+		"status_ok":          "OK",
+		"status_fail":        "Failed",
+		"running":            "Running",
+		"stopped":            "Stopped",
+		"exit_hint":          "Press %s to exit",
+		"normal_hint":        "Commands: %sAdd %sEdit %sDelete %sStart/Stop %sClear Stats %s中文 %sExit",
+		"edit_hint":          "Edit Mode: %sConfirm %sCancel %sSwitch Field",
+		"add_hint":           "Add Mode: %sConfirm %sCancel %sSwitch Field",
+		"name_label":         "Name: ",
+		"lport_label":        "Local Port: ",
+		"rhost_label":        "Remote Host: ",
+		"rport_label":        "Remote Port: ",
+		"confirm_delete":     "Are you sure to delete forwarding rule '%s'? [y/N]",
+		"yes":                "Yes",
+		"no":                 "No",
+		"confirm_title":      "⚠️  Confirm Deletion",
+		"confirm_warn":       "This action cannot be undone!",
+		"confirm_yes":        "Yes (Y)",
+		"confirm_no":         "No (N)",
+		"error_label":        "Error: ",
+		"invalid_lport":      "Invalid local port",
+		"invalid_rport":      "Invalid remote port",
+		"confirm_keys":       "← →/h l Switch  Enter Confirm  Esc Cancel",
+		"stats_cleared":      "Statistics cleared",
+		"last_active":        "Last Active",
+		"just_now":           "just now",
+		"seconds_ago":        "%ds ago",
+		"minutes_ago":        "%dm ago",
+		"hours_ago":          "%dh ago",
+		"days_ago":           "%dd ago",
+		"never":              "never",
+		"add_title":          "Add Forwarding Rule",
+		"edit_title":         "Edit Forwarding Rule",
+		"err_empty_name":     "Name cannot be empty",
+		"err_numeric_port":   "Port must be numeric",
+		"err_port_range":     "Port must be between 1-65535",
+		"err_empty_host":     "Host address cannot be empty",
+		"please_select_rule": "Please select a rule first",
 	},
 }
 
@@ -444,8 +450,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 				return m, nil
-			case "e":
-				if len(m.rules) > 0 {
+			case "e", "d", "s", "c":
+				if len(m.rules) == 0 {
+					m.err = fmt.Errorf(m.tr("please_select_rule"))
+					return m, nil
+				}
+
+				switch msg.String() {
+				case "e":
 					m.mode = editMode
 					m.focusIndex = 0
 					m.err = nil
@@ -462,18 +474,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.inputs[1].textinput.SetValue(fmt.Sprintf("%d", rule.LocalPort))
 					m.inputs[2].textinput.SetValue(rule.RemoteHost)
 					m.inputs[3].textinput.SetValue(fmt.Sprintf("%d", rule.RemotePort))
-				}
-				return m, nil
-			case "d":
-				if len(m.rules) > 0 {
+				case "d":
 					idx := m.table.Cursor()
 					rule := m.rules[idx]
 					m.confirmMsg = fmt.Sprintf(m.tr("confirm_delete"), rule.Name)
 					m.mode = confirmMode
 					m.confirmYes = false
-				}
-			case "s":
-				if len(m.rules) > 0 {
+				case "s":
 					idx := m.table.Cursor()
 					if idx >= 0 && idx < len(m.rules) {
 						rule := &m.rules[idx]
@@ -487,14 +494,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							}
 						}
 					}
-				}
-			case "c":
-				if len(m.rules) > 0 {
+				case "c":
 					idx := m.table.Cursor()
 					rule := &m.rules[idx]
 					m.clearStats(rule)
 					m.updateRows()
-					return m, nil
 				}
 			}
 		case confirmMode:
@@ -656,20 +660,45 @@ func (m model) View() string {
 		view += baseStyle.Render(m.table.View())
 
 		// 错误信息显示
+		if m.err != nil {
+			view += "\n" + errorStyle.Render(m.err.Error())
+		}
+
 		for _, rule := range m.rules {
 			if rule.Error != "" {
 				view += fmt.Sprintf("\n%s: %s", rule.Name, rule.Error)
 			}
 		}
 
+		// 检查是否有规则
+		hasRules := len(m.rules) > 0
+
+		// 根据是否有规则选择按钮样式
+		addKey := keyStyle.Render("[a]")
+		var editKey, deleteKey, startStopKey, clearKey, langKey, quitKey string
+
+		if hasRules {
+			editKey = keyStyle.Render("[e]")
+			deleteKey = keyStyle.Render("[d]")
+			startStopKey = keyStyle.Render("[s]")
+			clearKey = keyStyle.Render("[c]")
+		} else {
+			editKey = disabledButtonStyle.Render("[e]")
+			deleteKey = disabledButtonStyle.Render("[d]")
+			startStopKey = disabledButtonStyle.Render("[s]")
+			clearKey = disabledButtonStyle.Render("[c]")
+		}
+		langKey = keyStyle.Render("[L]")
+		quitKey = keyStyle.Render("[q]")
+
 		hint := fmt.Sprintf(m.tr("normal_hint"),
-			keyStyle.Render("[a]"),
-			keyStyle.Render("[e]"),
-			keyStyle.Render("[d]"),
-			keyStyle.Render("[s]"),
-			keyStyle.Render("[c]"),
-			keyStyle.Render("[L]"),
-			keyStyle.Render("[q]"),
+			addKey,
+			editKey,
+			deleteKey,
+			startStopKey,
+			clearKey,
+			langKey,
+			quitKey,
 		)
 		view += "\n" + hint
 
