@@ -297,10 +297,10 @@ func (m *model) updateTable() {
 		{Title: m.tr("local_port"), Width: 10},
 		{Title: m.tr("remote_addr"), Width: 30},
 		{Title: m.tr("status"), Width: 10},
-		{Title: m.tr("connections"), Width: 10},
-		{Title: m.tr("bytes_sent"), Width: 15},
-		{Title: m.tr("bytes_recv"), Width: 15},
-		{Title: m.tr("last_active"), Width: 15},
+		{Title: m.tr("connections"), Width: 12},
+		{Title: m.tr("bytes_sent"), Width: 12},
+		{Title: m.tr("bytes_recv"), Width: 12},
+		{Title: m.tr("last_active"), Width: 12},
 	}
 	m.table.SetColumns(columns)
 	m.updateRows()
