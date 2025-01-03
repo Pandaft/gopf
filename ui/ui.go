@@ -90,6 +90,8 @@ type model struct {
 	confirmMsg string
 	confirmYes bool
 	version    string
+	width      int
+	height     int
 }
 
 var translations = map[config.Language]map[string]string{
@@ -227,22 +229,12 @@ func NewModel(cfg *config.Config, forwarders map[string]*forwarder.Forwarder, ve
 		mode:       normalMode,
 		confirmYes: false,
 		version:    version,
+		width:      120, // 默认宽度
+		height:     30,  // 默认高度
 	}
 
 	// 创建表格
-	columns := []table.Column{
-		{Title: m.tr("name"), Width: 20},
-		{Title: m.tr("local_port"), Width: 10},
-		{Title: m.tr("remote_addr"), Width: 30},
-		{Title: m.tr("status"), Width: 10},
-		{Title: m.tr("connections"), Width: 10},
-		{Title: m.tr("bytes_sent"), Width: 15},
-		{Title: m.tr("bytes_recv"), Width: 15},
-		{Title: m.tr("last_active"), Width: 15},
-	}
-
 	t := table.New(
-		table.WithColumns(columns),
 		table.WithFocused(true),
 		table.WithHeight(7),
 		table.WithKeyMap(table.DefaultKeyMap()),
@@ -261,9 +253,109 @@ func NewModel(cfg *config.Config, forwarders map[string]*forwarder.Forwarder, ve
 	t.SetStyles(s)
 
 	m.table = t
+
+	// 初始化列
+	columnDefs := []struct {
+		title    string
+		minWidth int
+	}{
+		{m.tr("name"), 20},
+		{m.tr("local_port"), 10},
+		{m.tr("remote_addr"), 30},
+		{m.tr("status"), 10},
+		{m.tr("connections"), 10},
+		{m.tr("bytes_sent"), 15},
+		{m.tr("bytes_recv"), 15},
+		{m.tr("last_active"), 15},
+	}
+
+	columns := make([]table.Column, len(columnDefs))
+	for i, def := range columnDefs {
+		columns[i] = table.Column{
+			Title: def.title,
+			Width: def.minWidth,
+		}
+	}
+	m.table.SetColumns(columns)
+
+	// 初始化空行
+	emptyRow := make(table.Row, len(columnDefs))
+	for i := range emptyRow {
+		emptyRow[i] = ""
+	}
+	m.table.SetRows([]table.Row{emptyRow})
+
 	m.initInputs()
 	m.updateRows()
 	return m
+}
+
+func (m *model) updateTableColumns() {
+	// 计算可用宽度（考虑边框和padding）
+	availableWidth := m.width
+	if availableWidth == 0 {
+		availableWidth = 120 // 默认宽度
+	}
+	availableWidth -= 20 // 减去边框和padding的宽度
+
+	// 定义每列的最小宽度和权重
+	columnDefs := []struct {
+		title    string
+		minWidth int
+		weight   float64
+	}{
+		{m.tr("name"), 10, 1.5},      // 名称列稍宽一些
+		{m.tr("local_port"), 8, 1},   // 本地端口列
+		{m.tr("remote_addr"), 15, 2}, // 远程地址列最宽
+		{m.tr("status"), 8, 1},       // 状态列
+		{m.tr("connections"), 6, 1},  // 连接数列
+		{m.tr("bytes_sent"), 8, 1},   // 发送流量列
+		{m.tr("bytes_recv"), 8, 1},   // 接收流量列
+		{m.tr("last_active"), 8, 1},  // 最后活跃列
+	}
+
+	// 计算所有列的最小宽度总和
+	totalMinWidth := 0
+	for _, def := range columnDefs {
+		totalMinWidth += def.minWidth
+	}
+
+	// 计算剩余可分配宽度
+	remainingWidth := availableWidth - totalMinWidth
+	if remainingWidth < 0 {
+		remainingWidth = 0
+	}
+
+	// 计算权重总和
+	totalWeight := 0.0
+	for _, def := range columnDefs {
+		totalWeight += def.weight
+	}
+
+	// 创建列定义
+	var columns []table.Column
+	for _, def := range columnDefs {
+		// 计算额外分配的宽度
+		extraWidth := 0
+		if totalWeight > 0 {
+			extraWidth = int((float64(remainingWidth) * def.weight) / totalWeight)
+		}
+
+		// 确保最终宽度不小于最小宽度
+		width := def.minWidth + extraWidth
+
+		columns = append(columns, table.Column{
+			Title: def.title,
+			Width: width,
+		})
+	}
+
+	m.table.SetColumns(columns)
+}
+
+func (m *model) updateTable() {
+	m.updateTableColumns()
+	m.updateRows()
 }
 
 func (m *model) initInputs() {
@@ -291,22 +383,12 @@ func (m *model) initInputs() {
 	}
 }
 
-func (m *model) updateTable() {
-	columns := []table.Column{
-		{Title: m.tr("name"), Width: 20},
-		{Title: m.tr("local_port"), Width: 10},
-		{Title: m.tr("remote_addr"), Width: 30},
-		{Title: m.tr("status"), Width: 10},
-		{Title: m.tr("connections"), Width: 12},
-		{Title: m.tr("bytes_sent"), Width: 12},
-		{Title: m.tr("bytes_recv"), Width: 12},
-		{Title: m.tr("last_active"), Width: 12},
-	}
-	m.table.SetColumns(columns)
-	m.updateRows()
-}
-
 func (m *model) updateRows() {
+	// 确保表格有列定义
+	if len(m.table.Columns()) == 0 {
+		m.updateTableColumns()
+	}
+
 	var rows []table.Row
 	for _, rule := range m.rules {
 		status := m.tr("running")
@@ -328,13 +410,26 @@ func (m *model) updateRows() {
 			formatLastActive(rule.LastActive, m.tr),
 		})
 	}
+
+	// 如果没有数据，添加一个空行
+	if len(rows) == 0 {
+		emptyRow := make(table.Row, len(m.table.Columns()))
+		for i := range emptyRow {
+			emptyRow[i] = ""
+		}
+		rows = append(rows, emptyRow)
+	}
+
 	m.table.SetRows(rows)
 
-	if len(rows) > 0 {
+	// 更新光标位置
+	if len(m.rules) > 0 {
 		cursor := m.table.Cursor()
-		if cursor >= len(rows) {
-			m.table.SetCursor(len(rows) - 1)
+		if cursor >= len(m.rules) {
+			m.table.SetCursor(len(m.rules) - 1)
 		}
+	} else {
+		m.table.SetCursor(0)
 	}
 }
 
@@ -391,15 +486,23 @@ func (m *model) clearStats(rule *config.ForwardRule) {
 type tickMsg time.Time
 
 func (m *model) Init() tea.Cmd {
-	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
-		return tickMsg(t)
-	})
+	return tea.Batch(
+		tea.EnterAltScreen,
+		tea.Tick(time.Second, func(t time.Time) tea.Msg {
+			return tickMsg(t)
+		}),
+	)
 }
 
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		m.updateTableColumns()
+		return m, nil
 	case tickMsg:
 		m.updateRows()
 		return m, tea.Tick(time.Second, func(t time.Time) tea.Msg {
