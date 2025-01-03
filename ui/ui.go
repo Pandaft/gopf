@@ -189,7 +189,7 @@ var translations = map[config.Language]map[string]string{
 	},
 }
 
-func (m model) tr(key string) string {
+func (m *model) tr(key string) string {
 	if t, ok := translations[m.language][key]; ok {
 		return t
 	}
@@ -218,8 +218,8 @@ func formatLastActive(lastActive int64, tr func(string) string) string {
 	}
 }
 
-func NewModel(cfg *config.Config, forwarders map[string]*forwarder.Forwarder, version string) model {
-	m := model{
+func NewModel(cfg *config.Config, forwarders map[string]*forwarder.Forwarder, version string) *model {
+	m := &model{
 		config:     cfg,
 		rules:      cfg.Rules,
 		forwarders: forwarders,
@@ -390,13 +390,13 @@ func (m *model) clearStats(rule *config.ForwardRule) {
 
 type tickMsg time.Time
 
-func (m model) Init() tea.Cmd {
+func (m *model) Init() tea.Cmd {
 	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -640,7 +640,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m model) View() string {
+func (m *model) View() string {
 	var view string
 
 	// 添加标题和版本信息
@@ -809,27 +809,40 @@ func StartUI(cfg *config.Config, forwarders map[string]*forwarder.Forwarder, ver
 	return err
 }
 
-func (m model) validateName(s string) error {
+type validationError struct {
+	key string
+	m   *model
+}
+
+func (e validationError) Error() string {
+	return e.m.tr(e.key)
+}
+
+func (m *model) newValidationError(key string) error {
+	return validationError{key: key, m: m}
+}
+
+func (m *model) validateName(s string) error {
 	if s == "" {
-		return fmt.Errorf(m.tr("err_empty_name"))
+		return m.newValidationError("err_empty_name")
 	}
 	return nil
 }
 
-func (m model) validatePort(s string) error {
+func (m *model) validatePort(s string) error {
 	port, err := strconv.Atoi(s)
 	if err != nil {
-		return fmt.Errorf(m.tr("err_numeric_port"))
+		return m.newValidationError("err_numeric_port")
 	}
 	if port < 1 || port > 65535 {
-		return fmt.Errorf(m.tr("err_port_range"))
+		return m.newValidationError("err_port_range")
 	}
 	return nil
 }
 
-func (m model) validateHost(s string) error {
+func (m *model) validateHost(s string) error {
 	if s == "" {
-		return fmt.Errorf(m.tr("err_empty_host"))
+		return m.newValidationError("err_empty_host")
 	}
 	return nil
 }
