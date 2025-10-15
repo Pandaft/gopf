@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	version           = "v0.1.3"
+	version           = "v0.1.4"
 	defaultConfigFile = "gopf.yaml"
 )
 
