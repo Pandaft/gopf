@@ -15,17 +15,18 @@ const (
 )
 
 type ForwardRule struct {
-	Name        string `yaml:"name"`
-	LocalPort   int    `yaml:"local_port"`
-	RemoteHost  string `yaml:"remote_host"`
-	RemotePort  int    `yaml:"remote_port"`
-	BytesSent   uint64 `yaml:"-"`
-	BytesRecv   uint64 `yaml:"-"`
-	Connections uint64 `yaml:"-"`
-	Status      string `yaml:"-"`
-	Error       string `yaml:"-"`
-	IsRunning   bool   `yaml:"-"`
-	LastActive  int64  `yaml:"-"`
+	Name         string `yaml:"name"`
+	LocalPort    int    `yaml:"local_port"`
+	RemoteHost   string `yaml:"remote_host"`
+	RemotePort   int    `yaml:"remote_port"`
+	BytesSent    uint64 `yaml:"-"`
+	BytesRecv    uint64 `yaml:"-"`
+	Connections  uint64 `yaml:"-"`
+	ForwardCount uint64 `yaml:"-"`
+	Status       string `yaml:"-"`
+	Error        string `yaml:"-"`
+	IsRunning    bool   `yaml:"-"`
+	LastActive   int64  `yaml:"-"`
 }
 
 type Config struct {

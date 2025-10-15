@@ -101,6 +101,7 @@ var translations = map[config.Language]map[string]string{
 		"remote_addr":        "远程地址",
 		"status":             "状态",
 		"connections":        "连接数",
+		"forward_count":      "转发数",
 		"bytes_sent":         "发送流量",
 		"bytes_recv":         "接收流量",
 		"status_ok":          "正常",
@@ -148,6 +149,7 @@ var translations = map[config.Language]map[string]string{
 		"remote_addr":        "Remote Addr",
 		"status":             "Status",
 		"connections":        "Connections",
+		"forward_count":      "Forwards",
 		"bytes_sent":         "Bytes Sent",
 		"bytes_recv":         "Bytes Recv",
 		"status_ok":          "OK",
@@ -264,6 +266,7 @@ func NewModel(cfg *config.Config, forwarders map[string]*forwarder.Forwarder, ve
 		{m.tr("remote_addr"), 30},
 		{m.tr("status"), 10},
 		{m.tr("connections"), 10},
+		{m.tr("forward_count"), 10},
 		{m.tr("bytes_sent"), 15},
 		{m.tr("bytes_recv"), 15},
 		{m.tr("last_active"), 15},
@@ -304,14 +307,15 @@ func (m *model) updateTableColumns() {
 		minWidth int
 		weight   float64
 	}{
-		{m.tr("name"), 10, 1.5},      // 名称列稍宽一些
-		{m.tr("local_port"), 8, 1},   // 本地端口列
-		{m.tr("remote_addr"), 15, 2}, // 远程地址列最宽
-		{m.tr("status"), 8, 1},       // 状态列
-		{m.tr("connections"), 6, 1},  // 连接数列
-		{m.tr("bytes_sent"), 8, 1},   // 发送流量列
-		{m.tr("bytes_recv"), 8, 1},   // 接收流量列
-		{m.tr("last_active"), 8, 1},  // 最后活跃列
+		{m.tr("name"), 10, 1.5},        // 名称列稍宽一些
+		{m.tr("local_port"), 8, 1},     // 本地端口列
+		{m.tr("remote_addr"), 15, 2},   // 远程地址列最宽
+		{m.tr("status"), 8, 1},         // 状态列
+		{m.tr("connections"), 6, 1},    // 连接数列
+		{m.tr("forward_count"), 6, 1},  // 转发数列
+		{m.tr("bytes_sent"), 8, 1},     // 发送流量列
+		{m.tr("bytes_recv"), 8, 1},     // 接收流量列
+		{m.tr("last_active"), 8, 1},    // 最后活跃列
 	}
 
 	// 计算所有列的最小宽度总和
@@ -405,6 +409,7 @@ func (m *model) updateRows() {
 			fmt.Sprintf("%s:%d", rule.RemoteHost, rule.RemotePort),
 			status,
 			fmt.Sprintf("%d", rule.Connections),
+			fmt.Sprintf("%d", rule.ForwardCount),
 			formatBytes(rule.BytesSent),
 			formatBytes(rule.BytesRecv),
 			formatLastActive(rule.LastActive, m.tr),
@@ -480,6 +485,7 @@ func (m *model) clearStats(rule *config.ForwardRule) {
 		atomic.StoreUint64(&rule.BytesSent, 0)
 		atomic.StoreUint64(&rule.BytesRecv, 0)
 		atomic.StoreUint64(&rule.Connections, 0)
+		atomic.StoreUint64(&rule.ForwardCount, 0)
 	}
 }
 

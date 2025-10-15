@@ -10,15 +10,16 @@ import (
 )
 
 type Forwarder struct {
-	rule        *config.ForwardRule
-	listener    net.Listener
-	done        chan struct{}
-	mu          sync.Mutex
-	active      sync.WaitGroup
-	bytesSent   uint64
-	bytesRecv   uint64
-	connections uint64
-	lastActive  int64
+	rule         *config.ForwardRule
+	listener     net.Listener
+	done         chan struct{}
+	mu           sync.Mutex
+	active       sync.WaitGroup
+	bytesSent    uint64
+	bytesRecv    uint64
+	connections  uint64
+	forwardCount uint64
+	lastActive   int64
 }
 
 func NewForwarder(rule *config.ForwardRule) *Forwarder {
@@ -38,6 +39,7 @@ func (f *Forwarder) Start() error {
 	atomic.StoreUint64(&f.bytesSent, 0)
 	atomic.StoreUint64(&f.bytesRecv, 0)
 	atomic.StoreUint64(&f.connections, 0)
+	atomic.StoreUint64(&f.forwardCount, 0)
 	f.updateLastActive()
 	go f.accept()
 	go f.updateStats()
@@ -56,6 +58,7 @@ func (f *Forwarder) updateStats() {
 			atomic.StoreUint64(&f.rule.BytesSent, atomic.LoadUint64(&f.bytesSent))
 			atomic.StoreUint64(&f.rule.BytesRecv, atomic.LoadUint64(&f.bytesRecv))
 			atomic.StoreUint64(&f.rule.Connections, atomic.LoadUint64(&f.connections))
+			atomic.StoreUint64(&f.rule.ForwardCount, atomic.LoadUint64(&f.forwardCount))
 			atomic.StoreInt64(&f.rule.LastActive, atomic.LoadInt64(&f.lastActive))
 		}
 	}
@@ -122,6 +125,7 @@ func (f *Forwarder) pipe(src, dst net.Conn) {
 				}
 
 				f.updateLastActive()
+				atomic.AddUint64(&f.forwardCount, 1)
 
 				if dst.RemoteAddr().String() == fmt.Sprintf("%s:%d", f.rule.RemoteHost, f.rule.RemotePort) {
 					atomic.AddUint64(&f.bytesSent, uint64(n))
@@ -137,9 +141,11 @@ func (f *Forwarder) ClearStats() {
 	atomic.StoreUint64(&f.bytesSent, 0)
 	atomic.StoreUint64(&f.bytesRecv, 0)
 	atomic.StoreUint64(&f.connections, 0)
+	atomic.StoreUint64(&f.forwardCount, 0)
 	atomic.StoreUint64(&f.rule.BytesSent, 0)
 	atomic.StoreUint64(&f.rule.BytesRecv, 0)
 	atomic.StoreUint64(&f.rule.Connections, 0)
+	atomic.StoreUint64(&f.rule.ForwardCount, 0)
 }
 
 func (f *Forwarder) GetLocalPort() int {
